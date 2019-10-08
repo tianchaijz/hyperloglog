@@ -1,8 +1,8 @@
 package main
 
 import (
+	crand "crypto/rand"
 	"fmt"
-	"strconv"
 
 	"github.com/axiomhq/hyperloglog"
 	"github.com/influxdata/influxdb/pkg/estimator/hll"
@@ -20,16 +20,18 @@ func estimateError(got, exp uint64) float64 {
 
 func main() {
 	axiom := hyperloglog.New16()
-	influx, err := hll.NewPlus(14)
+	influx, err := hll.NewPlus(16)
 	if err != nil {
 		panic(err)
 	}
 
 	step := 10
 	unique := map[string]bool{}
+	buf := make([]byte, 32)
 
 	for i := 1; len(unique) <= 10000000; i++ {
-		str := "stream-" + strconv.Itoa(i)
+		crand.Read(buf)
+		str := string(buf)
 		axiom.Insert([]byte(str))
 		influx.Add([]byte(str))
 		unique[str] = true
@@ -53,7 +55,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Println("AxiomHQ HLL total size:\t", len(data2))
 	fmt.Println("InfluxData HLL++ total size:\t", len(data1))
-
 }
